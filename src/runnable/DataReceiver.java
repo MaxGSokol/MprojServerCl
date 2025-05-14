@@ -1,65 +1,29 @@
 package runnable;
 
 import data.FullDataPack;
-import serves.DataType;
 import serves.ServerClientConnection;
+import storage.DataStorage;
 
 import java.io.IOException;
 
-public class DataReceiver implements Runnable{
-private ServerClientConnection serverClientConnection;
-    @Override
-    public void run() {
-        try {
-            serverClientConnection = new ServerClientConnection();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+public class DataReceiver implements Runnable {
+    private final ServerClientConnection serverClientConnection;
 
-     /*   FullDataPack fullDataPack =  serverClientConnection.receive();
-        if (fullDataPack == null) {
-            System.out.println("!!!");
-        }*/
-        try {
-            serverClientConnection.receiveAllotOfData();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-        System.out.println(serverClientConnection.rec());
-        serverClientConnection.send("Пакет данных успешно доставлен на сервер.");
-        System.out.println("Сработало");
-
-         //checkData(fullDataPack);
-
-
+    public DataReceiver() throws IOException {
+        this.serverClientConnection = new ServerClientConnection();
     }
 
-    private void checkData(FullDataPack fullDataPack) {
+    @Override
+    public void run() {
 
-      //  System.out.println("Сигнатура - " + fullDataPack.getSignature());
-        System.out.println("Имя пользователя - "
-                + fullDataPack.getInputDataPack().getUserName());
-        System.out.println("Способ вывода данных на сервере - "
-                + fullDataPack.getInputDataPack().getFileType().name());
-
-        if (fullDataPack.getInputDataPack().getDataType() == DataType.ADVANCE) {
-            System.out.println("Выбранные температурные режимы.");
-
-            for (String key : fullDataPack.getInputDataPack().getDataMap().keySet()) {
-                Integer value = fullDataPack.getInputDataPack().getDataMap().get(key);
-                System.out.println(key + " - " + value + " градуса.");
+        while (true) {
+            FullDataPack fullDataPack = serverClientConnection.receiveAllotOfData();
+            if (fullDataPack == null) {
+                continue;
             }
+            DataStorage.FULL_PACK_STORAGE.addFirst(fullDataPack);
+            serverClientConnection.send("Пакет данных успешно доставлен на сервер.");
         }
-
-        if (fullDataPack.getInputDataPack().getDataType() == DataType.SIMPLE) {
-            System.out.println("Выбранный температурный режим - "
-                    + fullDataPack.getInputDataPack().getSimpleData() + " градуса.");
-        }
-
-        System.out.println("Длинна данных в байтах - " + fullDataPack.getDataLength());
-        System.out.println("CRC32 - " + fullDataPack.getControlSum());
     }
 
 }
