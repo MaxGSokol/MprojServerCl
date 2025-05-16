@@ -1,6 +1,6 @@
 package runnable;
 
-import data.FullDataPack;
+import data.DataPack;
 import serves.ServerClientConnection;
 import storage.DataStorage;
 
@@ -17,12 +17,10 @@ public class DataReceiver implements Runnable {
     public void run() {
 
         while (true) {
-            FullDataPack fullDataPack = serverClientConnection.receiveAllotOfData();
-            if (fullDataPack == null) {
-                continue;
+            DataPack dataPack = serverClientConnection.receiveAllotOfData();
+            if (dataPack != null) {
+                DataStorage.FULL_PACK_STORAGE.addFirst(dataPack);
             }
-            DataStorage.FULL_PACK_STORAGE.addFirst(fullDataPack);
-            serverClientConnection.send("Пакет данных успешно доставлен на сервер.");
         }
     }
 

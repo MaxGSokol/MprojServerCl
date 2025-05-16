@@ -6,6 +6,7 @@ import java.util.Properties;
 public class ServerClConfig {
     public static Properties SERVER_PROPERTIES = new Properties();
     private static final String PATH = "src/source/server.config";
+    public static String CLIENT_IP;
     public static int SERVER_PORT;
     public static String LOG_PATH;
     public static String TEXT_FILE_OUTPUT;

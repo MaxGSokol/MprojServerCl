@@ -1,6 +1,6 @@
 package serves;
 
-import data.FullDataPack;
+import data.DataPack;
 import data.InputData;
 import lombok.Getter;
 import source.ServerClConfig;
@@ -24,12 +24,13 @@ public class ServerClientConnection {
         clientSocket = serverSocket.accept();
         this.out = new ObjectOutputStream(clientSocket.getOutputStream());
         this.in = new ObjectInputStream(clientSocket.getInputStream());
+        ServerClConfig.CLIENT_IP = String.valueOf(clientSocket.getInetAddress());
         LogTools.statusLog("Соединение установлено.");
     }
 
-    public FullDataPack receiveAllotOfData() {
-        FullDataPack fullDataPack;
+    public DataPack receiveAllotOfData() {
         InputData inputData;
+        DataPack dataPack;
         try {
             String userName = (String) in.readObject();
             String fileType = (String) in.readObject();
@@ -39,41 +40,26 @@ public class ServerClientConnection {
             long controlSum = in.readLong();
             if (dataType.equals("SIMPLE")) {
                 int simpleDate = in.readInt();
-                inputData = new InputData(
-                        userName,
-                        fileType,
-                        simpleDate,
-                        dataType,
-                        String.valueOf(clientSocket.getInetAddress())
-                );
+                inputData = new InputData(userName, fileType, simpleDate, dataType);
+                dataPack = DataPack.builder()
+                        .InputData(inputData)
+                        .signature(signature)
+                        .dataLength(dataLength)
+                        .controlSum(controlSum).build();
             } else {
                 Map<String, Integer> dataMap = (ConcurrentHashMap<String, Integer>) in.readObject();
-                inputData = new InputData(
-                        userName,
-                        fileType,
-                        dataMap,
-                        dataType,
-                        String.valueOf(clientSocket.getInetAddress())
-                );
+                inputData = new InputData(userName, fileType, dataMap, dataType);
+                dataPack = DataPack.builder()
+                        .InputData(inputData)
+                        .signature(signature)
+                        .dataLength(dataLength)
+                        .controlSum(controlSum).build();
             }
-            fullDataPack = FullDataPack.builder()
-                    .inputData(inputData)
-                    .signature(signature)
-                    .dataLength(dataLength)
-                    .controlSum(controlSum).build();
-            return fullDataPack;
         } catch (IOException | ClassNotFoundException e) {
             LogTools.exceptionLog("Не удалось принять данные");
             throw new RuntimeException();
         }
-    }
-
-    public void send(String string) {
-        try {
-            out.writeObject(string);
-        } catch (IOException e) {
-            LogTools.exceptionLog("Не удалось отправить сообщение.");
-        }
+        return dataPack;
     }
 
 }

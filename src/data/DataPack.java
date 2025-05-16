@@ -5,8 +5,8 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class FullDataPack {
-    private InputData inputData;
+public class DataPack {
+    private InputData InputData;
     private String signature;
     private long dataLength;
     private long controlSum;
