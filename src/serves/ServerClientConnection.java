@@ -18,19 +18,22 @@ public class ServerClientConnection {
     private final ObjectOutputStream out;
     private final ObjectInputStream in;
     private final Socket clientSocket;
+    public static volatile boolean IS_NOT_CONNECT;
 
     public ServerClientConnection() throws IOException {
         ServerSocket serverSocket = new ServerSocket(ServerClConfig.SERVER_PORT);
+        LogTools.statusLog("В ожидании соединения.");
         clientSocket = serverSocket.accept();
         this.out = new ObjectOutputStream(clientSocket.getOutputStream());
         this.in = new ObjectInputStream(clientSocket.getInputStream());
         ServerClConfig.CLIENT_IP = String.valueOf(clientSocket.getInetAddress());
+        IS_NOT_CONNECT = false;
         LogTools.statusLog("Соединение установлено.");
     }
 
     public DataPack receiveAllotOfData() {
         InputData inputData;
-        DataPack dataPack;
+        DataPack dataPack = null;
         try {
             String userName = (String) in.readObject();
             String fileType = (String) in.readObject();
@@ -41,25 +44,33 @@ public class ServerClientConnection {
             if (dataType.equals("SIMPLE")) {
                 int simpleDate = in.readInt();
                 inputData = new InputData(userName, fileType, simpleDate, dataType);
-                dataPack = DataPack.builder()
-                        .InputData(inputData)
-                        .signature(signature)
-                        .dataLength(dataLength)
-                        .controlSum(controlSum).build();
             } else {
                 Map<String, Integer> dataMap = (ConcurrentHashMap<String, Integer>) in.readObject();
                 inputData = new InputData(userName, fileType, dataMap, dataType);
-                dataPack = DataPack.builder()
-                        .InputData(inputData)
-                        .signature(signature)
-                        .dataLength(dataLength)
-                        .controlSum(controlSum).build();
             }
-        } catch (IOException | ClassNotFoundException e) {
-            LogTools.exceptionLog("Не удалось принять данные");
-            throw new RuntimeException();
+            dataPack = DataPack.builder()
+                    .InputData(inputData)
+                    .signature(signature)
+                    .dataLength(dataLength)
+                    .controlSum(controlSum).build();
+        } catch (IOException e) {
+            LogTools.exceptionLog("Соединение прервано.");
+            IS_NOT_CONNECT = true;
+        } catch (ClassNotFoundException e) {
+            return null;
         }
         return dataPack;
+    }
+
+    public void close () {
+        try {
+            out.close();
+            in.close();
+            clientSocket.close();
+            LogTools.statusLog("Соединение закрыто.");
+        } catch (IOException e) {
+            LogTools.exceptionLog("Не возможно закрыть соединение.");
+        }
     }
 
 }
