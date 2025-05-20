@@ -1,76 +1,56 @@
 package output;
 
-import data.InputData;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import serves.LogTools;
-import source.ServerClConfig;
+import serves.OneLevelJsonParser;
+import source.SingletonServerConfig;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 
 public class JsonFileOutput implements FileOutputType {
-    InputData inputData;
-
-    public JsonFileOutput(InputData inputData) {
-        this.inputData = inputData;
-    }
 
     @Override
-    public void outputData() {
-        Path path = Path.of(ServerClConfig.JSON_FILE_OUTPUT);
-        if (!Files.exists(path)) {
-            try {
-                Files.createDirectories(path);
+    public void outputData(HashMap<String, String> map) {
+        Path path = Path.of(SingletonServerConfig.SERVER_CONFIG.getJsonFileOutput());
+        Path filePath = path;
+        JsonArray jsonArray = new JsonArray();
+        JsonObject jsonObject = new JsonObject();
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        if (!Files.notExists(filePath)) {
+            try (FileReader fileReader = new FileReader(String.valueOf(filePath));
+                 BufferedReader bufferedReader = new BufferedReader(fileReader)) {
+
+                jsonArray = OneLevelJsonParser.parseOneLevelJsonToArray(bufferedReader);
             } catch (IOException e) {
-                LogTools.exceptionLog("Директория уже сущесвует.");
+                LogTools.exceptionLog("Не возможно прочитать файл.");
+            }
+        } else {
+            try {
+                Path dirPath = path.getParent();
+                Files.createDirectories(dirPath);
+                filePath = dirPath.resolve(String.valueOf(path.getFileName()));
+                Files.createFile(filePath);
+            } catch (IOException e) {
+                LogTools.exceptionLog("Не удалось создать директорию для json файла.");
             }
         }
-        try (FileWriter fileWriter = new FileWriter(String.valueOf(path))) {
-            fileWriter.write(toJson());
+        jsonObject.addProperty("date", map.get("date"));
+        jsonObject.addProperty("ip", map.get("ip"));
+        jsonObject.addProperty("data", map.get("data"));
+        jsonArray.add(jsonObject);
+        try (FileWriter fileWriter = new FileWriter(String.valueOf(filePath));) {
+
+            gson.toJson(jsonArray, fileWriter);
+            fileWriter.flush();
         } catch (IOException e) {
             LogTools.exceptionLog("Не возможно записать файл.");
         }
-    }
-
-    private String toJson() {
-        LocalDateTime localDateTime = LocalDateTime.now();
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
-        String dateFormat = localDateTime.format(dateTimeFormatter);
-
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("[\n");
-        stringBuilder.append("{\n");
-        stringBuilder.append("\"date\":\"" +
-                dateFormat +
-                "\",\n");
-        stringBuilder.append("\n");
-        stringBuilder.append("\"ip\":\"" +
-                ServerClConfig.CLIENT_IP +
-                "\",\n");
-        stringBuilder.append("\n");
-        if (inputData.getDataType().equals("SIMPLE")) {
-            stringBuilder.append("\"data\":\"" +
-                    "Выбранный температурный режим " +
-                    inputData.getSimpleData() +
-                    " град." +
-                    "\"\n");
-        } else {
-            StringBuilder stringBuilder2 = new StringBuilder();
-            for (String key : inputData.getDataMap().keySet()) {
-                Integer value = inputData.getDataMap().get(key);
-                stringBuilder2.append(key + " - " + value + " град.");
-            }
-            stringBuilder.append("\"data\":\"" +
-                    "Выбранный температурный режим " +
-                    stringBuilder2 +
-                    "град." +
-                    "\"\n");
-        }
-        stringBuilder.append("}\n");
-        stringBuilder.append("]\n");
-        return stringBuilder.toString();
     }
 
 }

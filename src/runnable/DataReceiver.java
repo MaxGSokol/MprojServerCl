@@ -2,7 +2,8 @@ package runnable;
 
 import data.DataPack;
 import serves.ServerClientConnection;
-import storage.DataStorage;
+import source.SingletonServerConfig;
+import storage.SingletonServerDataStorage;
 
 import java.io.IOException;
 
@@ -15,14 +16,12 @@ public class DataReceiver implements Runnable {
             ServerClientConnection serverClientConnection;
             try {
                 serverClientConnection = new ServerClientConnection();
-                while (!ServerClientConnection.IS_NOT_CONNECT) {
-
+                while (!SingletonServerConfig.SERVER_CONFIG.isInvalidConnection()) {
                     DataPack dataPack = serverClientConnection.receiveAllotOfData();
                     if (dataPack != null) {
-                        DataStorage.FULL_PACK_STORAGE.addFirst(dataPack);
+                        SingletonServerDataStorage.SERVER_DATA_STORAGE.putFullDataPackToStorage(dataPack);
                     }
                 }
-                serverClientConnection.close();
             } catch (IOException e) {
                 continue;
             }

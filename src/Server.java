@@ -2,7 +2,7 @@ import runnable.DataManager;
 import runnable.DataOutputer;
 import runnable.DataReceiver;
 
-import java.io.IOException;
+import java.io.*;
 
 public class Server {
 
@@ -19,5 +19,4 @@ public class Server {
         Thread thread3 = new Thread(dataOutputer);
         thread3.start();
     }
-
 }

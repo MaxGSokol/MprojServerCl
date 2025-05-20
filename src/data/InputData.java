@@ -1,12 +1,11 @@
 package data;
 
 import lombok.Getter;
-import lombok.ToString;
 import serves.LogTools;
 
 import java.util.Map;
 
-@ToString
+
 @Getter
 public class InputData {
     private final String userName;
@@ -30,4 +29,5 @@ public class InputData {
         this.dataType = dataType;
         LogTools.statusLog("Пакет данных собран.");
     }
+
 }

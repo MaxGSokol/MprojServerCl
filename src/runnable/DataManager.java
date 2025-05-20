@@ -3,7 +3,8 @@ package runnable;
 import data.DataPack;
 import data.InputData;
 import serves.LogTools;
-import storage.DataStorage;
+import source.SingletonServerConfig;
+import storage.SingletonServerDataStorage;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
@@ -12,20 +13,37 @@ import java.util.zip.CRC32;
 public class DataManager implements Runnable {
     @Override
     public void run() {
-
         while (true) {
-            DataPack dataPack = DataStorage.FULL_PACK_STORAGE.pollLast();
+            DataPack dataPack =
+                    SingletonServerDataStorage.SERVER_DATA_STORAGE.getFullDataPackFromStorage();
             if (dataPack != null) {
-                checkData(dataPack);
-                DataStorage.INPUT_DATA_STORAGE.addFirst(dataPack.getInputData());
+                if (!checkData(dataPack)) {
+                    SingletonServerConfig.SERVER_CONFIG.setInvalidConnection(true);
+                    continue;
+                }
+                SingletonServerDataStorage.SERVER_DATA_STORAGE.putInputDataToStorage(dataPack.getInputData());
             }
         }
     }
 
-    private void checkData(DataPack dataPack) {
+    private boolean checkData(DataPack dataPack) {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("Проверка принятых данных.\n");
-        stringBuilder.append("Сигнатура пакета данных -" + dataPack.getSignature() + " .\n");
+        if (dataPack.getSignature().equals(SingletonServerConfig.SERVER_CONFIG.getSignature())) {
+            stringBuilder.append("Сигнатура пакета данных соответсвует установленной.\n");
+        } else {
+            LogTools.exceptionLog("Данные поступили из неивестного источника.\n" +
+                    "Соединение будет прерванно!");
+            return false;
+        }
+        if (!(dataPack.getInputData().getFileType().equals("CONSOLE") ||
+                dataPack.getInputData().getFileType().equals("PLAIN") ||
+                dataPack.getInputData().getFileType().equals("JSON"))) {
+            LogTools.exceptionLog("Способ дальнейшей обработки данных не соответствует параметрам программы. \n" +
+                    "Соединение будет прервано!");
+            SingletonServerConfig.SERVER_CONFIG.setInvalidConnection(true);
+            return false;
+        }
         if (dataPack.getDataLength() == getDataLength(getDataBytesArray(dataPack.getInputData()))) {
             stringBuilder.append("Длинна данных соответствует длинне данных при отправлении.\n");
         } else {
@@ -40,6 +58,7 @@ public class DataManager implements Runnable {
         stringBuilder.append("---------------------------------------\n");
 
         LogTools.statusLog(stringBuilder.toString());
+        return true;
     }
 
     private byte[] getDataBytesArray(InputData inputData) {
@@ -60,7 +79,6 @@ public class DataManager implements Runnable {
         return obj;
     }
 
-
     private long getDataLength(byte[] obj) {
         return obj.length;
     }
@@ -70,4 +88,5 @@ public class DataManager implements Runnable {
         crc32.update(obj);
         return crc32.getValue();
     }
+
 }

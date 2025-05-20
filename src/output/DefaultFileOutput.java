@@ -1,59 +1,41 @@
 package output;
 
-import data.InputData;
 import serves.LogTools;
-import source.ServerClConfig;
+import source.SingletonServerConfig;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 
 public class DefaultFileOutput implements FileOutputType {
-    private InputData inputData;
-
-    public DefaultFileOutput(InputData inputData) {
-        this.inputData = inputData;
-    }
 
     @Override
-    public void outputData() {
-        Path path = Path.of(ServerClConfig.TEXT_FILE_OUTPUT);
-        if (!Files.exists(path)) {
+    public void outputData(HashMap<String, String> map) {
+        Path path = Path.of(SingletonServerConfig.SERVER_CONFIG.getTextFileOutput());
+        Path filePath = path;
+        if (Files.notExists(path)) {
             try {
-                Files.createDirectory(path);
+                Path dirPath = path.getParent();
+                Files.createDirectories(dirPath);
+                filePath = dirPath.resolve(String.valueOf(path.getFileName()));
+                Files.createFile(filePath);
             } catch (IOException e) {
-                LogTools.exceptionLog("Директория уже сущесвует.");
+                LogTools.exceptionLog("Не удалось создать директорию для json файла.");
             }
+
         }
-        try (FileWriter fileWriter = new FileWriter(String.valueOf(path), true)) {
-            fileWriter.write(outputFormater(inputData));
+
+        try (FileWriter fileWriter = new FileWriter(String.valueOf(filePath), true)) {
+            fileWriter.write(map.get("date") + " " + map.get("ip") + "\n");
+            fileWriter.write(map.get("data") + "\n");
+            fileWriter.write("--------------------------------------\n");
+            fileWriter.flush();
         } catch (IOException e) {
             LogTools.exceptionLog("Невозможно записать данные в файл.");
         }
     }
 
-    private String outputFormater(InputData InputData) {
-        StringBuilder stringBuilder = new StringBuilder();
-        LocalDateTime localDateTime = LocalDateTime.now();
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
-        String dateFormat = localDateTime.format(dateTimeFormatter);
-        stringBuilder.append(dateFormat + " ");
-        stringBuilder.append(ServerClConfig.CLIENT_IP + "\n");
-        stringBuilder.append(InputData.getUserName() + "\n");
-        if (InputData.getDataType().equals("SIMPLE")) {
-            stringBuilder.append("Выбранный температурный режим - " + InputData.getSimpleData());
-            stringBuilder.append(" градуса.\n");
-        } else {
-            stringBuilder.append("Выбранные температурные режимы.\n");
-            for (String key : InputData.getDataMap().keySet()) {
-                Integer value = InputData.getDataMap().get(key);
-                stringBuilder.append(key + " - " + value + " градуса.\n");
-            }
-        }
-        stringBuilder.append("--------------------------------------\n");
-        return stringBuilder.toString();
-    }
 }
+

@@ -3,7 +3,7 @@ package serves;
 import data.DataPack;
 import data.InputData;
 import lombok.Getter;
-import source.ServerClConfig;
+import source.SingletonServerConfig;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -14,20 +14,22 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Getter
-public class ServerClientConnection {
+public class ServerClientConnection implements Runnable {
     private final ObjectOutputStream out;
     private final ObjectInputStream in;
     private final Socket clientSocket;
-    public static volatile boolean IS_NOT_CONNECT;
 
     public ServerClientConnection() throws IOException {
-        ServerSocket serverSocket = new ServerSocket(ServerClConfig.SERVER_PORT);
+        ServerSocket serverSocket = new ServerSocket(SingletonServerConfig.SERVER_CONFIG.getServerPort());
         LogTools.statusLog("В ожидании соединения.");
         clientSocket = serverSocket.accept();
         this.out = new ObjectOutputStream(clientSocket.getOutputStream());
         this.in = new ObjectInputStream(clientSocket.getInputStream());
-        ServerClConfig.CLIENT_IP = String.valueOf(clientSocket.getInetAddress());
-        IS_NOT_CONNECT = false;
+        SingletonServerConfig.SERVER_CONFIG.setClientIp(String.valueOf(clientSocket.getInetAddress()));
+        SingletonServerConfig.SERVER_CONFIG.setInvalidConnection(false);
+        Thread thread = new Thread(this);
+        thread.setDaemon(true);
+        thread.start();
         LogTools.statusLog("Соединение установлено.");
     }
 
@@ -54,15 +56,14 @@ public class ServerClientConnection {
                     .dataLength(dataLength)
                     .controlSum(controlSum).build();
         } catch (IOException e) {
-            LogTools.exceptionLog("Соединение прервано.");
-            IS_NOT_CONNECT = true;
+            SingletonServerConfig.SERVER_CONFIG.setInvalidConnection(true);
         } catch (ClassNotFoundException e) {
             return null;
         }
         return dataPack;
     }
 
-    public void close () {
+    public void close() {
         try {
             out.close();
             in.close();
@@ -71,6 +72,13 @@ public class ServerClientConnection {
         } catch (IOException e) {
             LogTools.exceptionLog("Не возможно закрыть соединение.");
         }
+    }
+
+    @Override
+    public void run() {
+        while (!SingletonServerConfig.SERVER_CONFIG.isInvalidConnection()) {
+        }
+        close();
     }
 
 }
