@@ -14,16 +14,15 @@ public class OneLevelJsonParser {
 
     /**
      * Считывает данные. Подвергает частичному форматированию. Преобразует результат в массив строк {@code String[]}.
-     *<p> В операторе {@code return} работает метод {@link #getJsonArray(String[] objBlocks)}
+     * <p> В операторе {@code return} работает метод {@link #getJsonArray(String[] objBlocks)}
      * параметром которому подаёт созданный массив.
      *
      * @param bufferedReader - объект {@link BufferedReader}.
      * @return Возвращает {@link JsonArray} - массив данных записанных в формате
      * {@code jsonArray} библиотеки {@code gson-2.13}.
      * Который в свою очередь является результатом работы метода {@code getJsonArray}.
-     *<p> В случае отсутствия данных в файле, возвращает новый массив {@code new JsonArray()}.
+     * <p> В случае отсутствия данных в файле, возвращает новый массив {@code new JsonArray()}.
      * @throws IOException
-     *
      * @see #getJsonArray(String[])
      * @see #getJsonObj(String[])
      */
@@ -55,20 +54,20 @@ public class OneLevelJsonParser {
      *  <li> Работает внутри метода {@link #getJsonArray(String[])}
      *
      * </ul>
+     *
      * @param objFields - Массив строк {@code String[]}.
-     *
      * @return - Возвращает новый объект {@code JsonObject}.
-     *
-     *  @see #getJsonArray(String[])
+     * <p>
+     * @see #getJsonArray(String[])
      */
     private static JsonObject getJsonObj(String[] objFields) {
         JsonObject jsonObject = new JsonObject();
         String[] objFieldsValue;
         for (String string : objFields) {
-            objFieldsValue = string.split(":");
+            objFieldsValue = string.split(":", 2);
             jsonObject.addProperty(
                     objFieldsValue[0].trim().replaceAll("\"", "")
-                            .replaceAll("\\{","").replaceAll("\\[",""),
+                            .replaceAll("\\{", "").replaceAll("\\[", ""),
                     objFieldsValue[1].trim().replaceAll("\"", ""));
 
         }
@@ -93,7 +92,6 @@ public class OneLevelJsonParser {
      *
      * @param objBlocks - Массив строк {@code String[]}.
      * @return Массив - {@code  JsonArray}.
-     *
      * @see #parseOneLevelJsonToArray(BufferedReader)
      * @see #getJsonObj(String[])
      */

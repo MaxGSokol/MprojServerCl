@@ -1,18 +1,19 @@
 package output;
 
 import serves.LogTools;
+import serves.OutputDataMarks;
 import source.SingletonServerConfig;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
+import java.util.TreeMap;
 
 public class DefaultFileOutput implements FileOutputType {
 
     @Override
-    public void outputData(HashMap<String, String> map) {
+    public void outputData(TreeMap<OutputDataMarks, String> map) {
         Path path = Path.of(SingletonServerConfig.SERVER_CONFIG.getTextFileOutput());
         Path filePath = path;
         if (Files.notExists(path)) {
@@ -24,12 +25,11 @@ public class DefaultFileOutput implements FileOutputType {
             } catch (IOException e) {
                 LogTools.exceptionLog("Не удалось создать директорию для json файла.");
             }
-
         }
 
         try (FileWriter fileWriter = new FileWriter(String.valueOf(filePath), true)) {
-            fileWriter.write(map.get("date") + " " + map.get("ip") + "\n");
-            fileWriter.write(map.get("data") + "\n");
+            fileWriter.write(map.get(OutputDataMarks.DATE) + " " + map.get(OutputDataMarks.IP) + "\n");
+            fileWriter.write(map.get(OutputDataMarks.DATA) + "\n");
             fileWriter.write("--------------------------------------\n");
             fileWriter.flush();
         } catch (IOException e) {

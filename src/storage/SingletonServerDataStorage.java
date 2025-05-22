@@ -1,34 +1,34 @@
 package storage;
 
-import data.DataPack;
-import data.InputData;
+import dataclasses.FullData;
+import dataclasses.InputData;
 
 import java.util.ArrayDeque;
 
 public enum SingletonServerDataStorage {
     SERVER_DATA_STORAGE;
 
-    private volatile ArrayDeque<DataPack> fullPackStorage;
-    private volatile ArrayDeque<InputData> inputDataStorage;
+    private volatile ArrayDeque<FullData> fullPackStorage;
+    private volatile ArrayDeque<InputData> inputDataSStorage;
 
     SingletonServerDataStorage() {
         fullPackStorage = new ArrayDeque<>();
-        inputDataStorage = new ArrayDeque<>();
+        inputDataSStorage = new ArrayDeque<>();
     }
 
     public void putInputDataToStorage(InputData inputData) {
-        inputDataStorage.addFirst(inputData);
+        inputDataSStorage.addFirst(inputData);
     }
 
     public InputData getInputDataFromStorage() {
-        return inputDataStorage.pollLast();
+        return inputDataSStorage.pollLast();
     }
 
-    public void putFullDataPackToStorage(DataPack dataPack) {
-        fullPackStorage.addFirst(dataPack);
+    public void putFullDataPackToStorage(FullData fullData) {
+        fullPackStorage.addFirst(fullData);
     }
 
-    public DataPack getFullDataPackFromStorage() {
+    public FullData getFullDataPackFromStorage() {
         return fullPackStorage.pollLast();
     }
 

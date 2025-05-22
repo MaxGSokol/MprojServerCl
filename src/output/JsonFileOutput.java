@@ -6,17 +6,18 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import serves.LogTools;
 import serves.OneLevelJsonParser;
+import serves.OutputDataMarks;
 import source.SingletonServerConfig;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
+import java.util.TreeMap;
 
 public class JsonFileOutput implements FileOutputType {
 
     @Override
-    public void outputData(HashMap<String, String> map) {
+    public void outputData(TreeMap<OutputDataMarks, String> map) {
         Path path = Path.of(SingletonServerConfig.SERVER_CONFIG.getJsonFileOutput());
         Path filePath = path;
         JsonArray jsonArray = new JsonArray();
@@ -40,9 +41,11 @@ public class JsonFileOutput implements FileOutputType {
                 LogTools.exceptionLog("Не удалось создать директорию для json файла.");
             }
         }
-        jsonObject.addProperty("date", map.get("date"));
-        jsonObject.addProperty("ip", map.get("ip"));
-        jsonObject.addProperty("data", map.get("data"));
+
+        for (OutputDataMarks key : map.keySet()) {
+            String value = map.get(key);
+            jsonObject.addProperty(key.getValue(), value);
+        }
         jsonArray.add(jsonObject);
         try (FileWriter fileWriter = new FileWriter(String.valueOf(filePath));) {
 

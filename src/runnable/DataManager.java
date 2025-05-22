@@ -1,76 +1,74 @@
 package runnable;
 
-import data.DataPack;
-import data.InputData;
+import dataclasses.FullData;
+import dataclasses.InputData;
+import dataenums.OutputFileType;
 import serves.LogTools;
-import source.SingletonServerConfig;
-import storage.SingletonServerDataStorage;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
+import java.util.InputMismatchException;
 import java.util.zip.CRC32;
+
+
+import static source.SingletonServerConfig.SERVER_CONFIG;
+import static storage.SingletonServerDataStorage.SERVER_DATA_STORAGE;
 
 public class DataManager implements Runnable {
     @Override
     public void run() {
         while (true) {
-            DataPack dataPack =
-                    SingletonServerDataStorage.SERVER_DATA_STORAGE.getFullDataPackFromStorage();
-            if (dataPack != null) {
-                if (!checkData(dataPack)) {
-                    SingletonServerConfig.SERVER_CONFIG.setInvalidConnection(true);
+            FullData fullData = SERVER_DATA_STORAGE.getFullDataPackFromStorage();
+            if (fullData != null) {
+                try {
+                    checkData(fullData);
+                } catch (InputMismatchException e) {
+                    SERVER_CONFIG.setInvalidConnection(true);
                     continue;
                 }
-                SingletonServerDataStorage.SERVER_DATA_STORAGE.putInputDataToStorage(dataPack.getInputData());
+                SERVER_DATA_STORAGE.putInputDataToStorage(fullData.getInputData());
             }
         }
     }
 
-    private boolean checkData(DataPack dataPack) {
+    private void checkData(FullData fullData) throws InputMismatchException {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("Проверка принятых данных.\n");
-        if (dataPack.getSignature().equals(SingletonServerConfig.SERVER_CONFIG.getSignature())) {
-            stringBuilder.append("Сигнатура пакета данных соответсвует установленной.\n");
+        if (fullData.getSignature().equals(SERVER_CONFIG.getSignature())) {
+            stringBuilder.append("Сигнатура пакета данных соответствует установленной.\n");
         } else {
-            LogTools.exceptionLog("Данные поступили из неивестного источника.\n" +
-                    "Соединение будет прерванно!");
-            return false;
+            LogTools.exceptionLog("Данные поступили из неизвестного источника.\n" +
+                    "Соединение будет прерванною!");
+            throw new InputMismatchException();
         }
-        if (!(dataPack.getInputData().getFileType().equals("CONSOLE") ||
-                dataPack.getInputData().getFileType().equals("PLAIN") ||
-                dataPack.getInputData().getFileType().equals("JSON"))) {
+        if (!(fullData.getInputData().getFileType().equals(OutputFileType.CONSOLE) ||
+                fullData.getInputData().getFileType().equals(OutputFileType.PLAIN) ||
+                fullData.getInputData().getFileType().equals(OutputFileType.JSON))) {
             LogTools.exceptionLog("Способ дальнейшей обработки данных не соответствует параметрам программы. \n" +
                     "Соединение будет прервано!");
-            SingletonServerConfig.SERVER_CONFIG.setInvalidConnection(true);
-            return false;
+            throw new InputMismatchException();
         }
-        if (dataPack.getDataLength() == getDataLength(getDataBytesArray(dataPack.getInputData()))) {
-            stringBuilder.append("Длинна данных соответствует длинне данных при отправлении.\n");
+        if (fullData.getDataLength() == getDataLength(getDataBytesArray(fullData.getInputData()))) {
+            stringBuilder.append("Длинна данных соответствует длине данных при отправлении.\n");
         } else {
             stringBuilder.append("Данные получены не полностью. Возможна потеря при передаче или получении.\n");
         }
-        if (dataPack.getControlSum() == getCRC32(getDataBytesArray(dataPack.getInputData()))) {
+        if (fullData.getControlSum() == getCRC32(getDataBytesArray(fullData.getInputData()))) {
             stringBuilder.append("Контрольная сумма \"CRC32\" соответствует контрольной сумме при отправлении.\n");
         } else {
-            stringBuilder.append("Контрольная сумма \"CRC32\" не соответствует конртрольной сумме при отправлении" +
+            stringBuilder.append("Контрольная сумма \"CRC32\" не соответствует контрольной сумме при отправлении" +
                     "Данные повреждены.\n");
         }
         stringBuilder.append("---------------------------------------\n");
 
         LogTools.statusLog(stringBuilder.toString());
-        return true;
     }
 
     private byte[] getDataBytesArray(InputData inputData) {
         byte[] obj = null;
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
              ObjectOutputStream outputStream = new ObjectOutputStream(byteArrayOutputStream)) {
-            outputStream.writeObject(inputData.getUserName());
-            if (inputData.getDataType().equals("SIMPLE")) {
-                outputStream.writeInt(inputData.getSimpleData());
-            } else {
-                outputStream.writeObject(inputData.getDataMap());
-            }
+            outputStream.writeObject(inputData);
             outputStream.flush();
             obj = byteArrayOutputStream.toByteArray();
         } catch (Exception e) {
