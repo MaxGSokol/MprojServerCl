@@ -1,9 +1,7 @@
 package output;
 
 import runnable.DataOutputer;
-import serves.OutputDataMarks;
-
-import java.util.TreeMap;
+import serves.ClientData;
 
 /**
  * Интерфейс {@code FileOutputType} реализуется в классах отвечающих за различный вывод данных.
@@ -15,8 +13,8 @@ public interface FileOutputType {
      * Переопределяется в классе реализующем интерфейс в соответствии с логикой и форматом вывода
      * данных.
      *
-     * @param map - {@code HashMap<String, String>} содержит данные для вывода.
+     * @param clientData Объект {@code POJO} класса хранящий данные.
      */
-    void outputData(TreeMap<OutputDataMarks, String> map);
+    void outputData(ClientData clientData);
 
 }

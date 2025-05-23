@@ -1,15 +1,15 @@
 package output;
 
-import serves.OutputDataMarks;
-
-import java.util.TreeMap;
+import serves.ClientData;
 
 public class ConsoleFileOutput implements FileOutputType {
 
     @Override
-    public void outputData(TreeMap<OutputDataMarks, String> map) {
-        System.out.println(map.get(OutputDataMarks.DATE) + " " + map.get(OutputDataMarks.IP));
-        System.out.println(map.get(OutputDataMarks.DATA));
+    public void outputData(ClientData clientData) {
+        System.out.println(clientData.getDate() + " " + clientData.getIp());
+        for (String string : clientData.getData()) {
+            System.out.println(string);
+        }
         System.out.println("--------------------------------------");
     }
 

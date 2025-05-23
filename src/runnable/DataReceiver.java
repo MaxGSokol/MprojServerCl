@@ -1,6 +1,5 @@
 package runnable;
 
-import dataclasses.FullData;
 import serves.LogTools;
 import serves.ServerClientConnection;
 
@@ -18,7 +17,7 @@ public class DataReceiver implements Runnable {
             try {
                 serverClientConnection = new ServerClientConnection();
                 while (!SERVER_CONFIG.isInvalidConnection()) {
-                    FullData fullData = serverClientConnection.receive();
+                    Object fullData = serverClientConnection.receive();
                     if (fullData != null) {
                         SERVER_DATA_STORAGE.putFullDataPackToStorage(fullData);
                     }

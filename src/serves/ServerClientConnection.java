@@ -1,6 +1,5 @@
 package serves;
 
-import dataclasses.FullData;
 import lombok.Getter;
 
 import java.io.IOException;
@@ -35,9 +34,9 @@ public class ServerClientConnection implements Runnable {
         LogTools.statusLog("Соединение установлено.");
     }
 
-    public FullData receive() throws IOException {
+    public Object receive() throws IOException {
         try {
-            return (FullData) in.readObject();
+            return in.readObject();
         } catch (ClassNotFoundException e) {
             return null;
         }

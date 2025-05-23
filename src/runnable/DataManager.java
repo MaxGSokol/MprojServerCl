@@ -18,7 +18,16 @@ public class DataManager implements Runnable {
     @Override
     public void run() {
         while (true) {
-            FullData fullData = SERVER_DATA_STORAGE.getFullDataPackFromStorage();
+            FullData fullData;
+
+            try {
+                fullData = (FullData) SERVER_DATA_STORAGE.getFullDataPackFromStorage();
+            } catch (ClassCastException r) {
+                LogTools.exceptionLog("Полученный пакет данных не соответствует " +
+                        "формату обрабатываемому сервером.");
+                fullData = null;
+            }
+
             if (fullData != null) {
                 try {
                     checkData(fullData);

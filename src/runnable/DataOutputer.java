@@ -2,15 +2,11 @@ package runnable;
 
 import dataclasses.InputData;
 import dataenums.DayTimeSettings;
-import output.ConsoleFileOutput;
-import output.DefaultFileOutput;
-import output.FileOutputType;
-import output.JsonFileOutput;
-import serves.OutputDataMarks;
+import output.*;
+import serves.ClientData;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.TreeMap;
 
 import static source.SingletonServerConfig.SERVER_CONFIG;
 import static storage.SingletonServerDataStorage.SERVER_DATA_STORAGE;
@@ -23,9 +19,8 @@ public class DataOutputer implements Runnable {
         while (true) {
             InputData inputData = SERVER_DATA_STORAGE.getInputDataFromStorage();
             if (inputData != null) {
-
                 FileOutputType fileOutputType = outputFactory(inputData);
-                fileOutputType.outputData(getDataInMap(inputData));
+                fileOutputType.outputData(getClientData(inputData));
             }
         }
     }
@@ -38,23 +33,20 @@ public class DataOutputer implements Runnable {
         };
     }
 
-    private TreeMap<OutputDataMarks, String> getDataInMap(InputData inputData) {
-        TreeMap<OutputDataMarks, String> dataMap = new TreeMap<>();
-        dataMap.put(OutputDataMarks.DATA, getData(inputData));
-        dataMap.put(OutputDataMarks.IP, getIp());
-        dataMap.put(OutputDataMarks.DATE, getDate());
-        return dataMap;
+    private ClientData getClientData(InputData inputData) {
+        return new ClientData(getDate(), getIp(), getData(inputData));
     }
 
-    private String getData(InputData inputData) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(inputData.getUserName()).append(". ")
-                .append("Выбранные температурные режим: ");
+    private String[] getData(InputData inputData) {
+        String[] data = new String[inputData.getDataMap().size() + 2];
+        data[0] = inputData.getUserName();
+        data[1] = "Выбранные температурные режим:";
+        int x = 2;
         for (DayTimeSettings key : inputData.getDataMap().keySet()) {
             Integer value = inputData.getDataMap().get(key);
-            stringBuilder.append(key.getValue()).append(" - ").append(value).append(" град. ");
+            data[x++] = (key.getValue()) + (" - ") + (value) + (" град. ");
         }
-        return stringBuilder.toString();
+        return data;
     }
 
     private String getIp() {

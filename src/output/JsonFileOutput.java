@@ -2,35 +2,49 @@ package output;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
+import serves.ClientData;
 import serves.LogTools;
-import serves.OneLevelJsonParser;
-import serves.OutputDataMarks;
 import source.SingletonServerConfig;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.TreeMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class JsonFileOutput implements FileOutputType {
 
     @Override
-    public void outputData(TreeMap<OutputDataMarks, String> map) {
+    public void outputData(ClientData clientData) {
         Path path = Path.of(SingletonServerConfig.SERVER_CONFIG.getJsonFileOutput());
         Path filePath = path;
-        JsonArray jsonArray = new JsonArray();
-        JsonObject jsonObject = new JsonObject();
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        List<ClientData> clientDataList = new ArrayList<>();
+
         if (!Files.notExists(filePath)) {
             try (FileReader fileReader = new FileReader(String.valueOf(filePath));
                  BufferedReader bufferedReader = new BufferedReader(fileReader)) {
+                try {
+                    List<ClientData> dataListataList =
+                            Arrays.asList(gson.fromJson(bufferedReader, ClientData[].class));
+                    clientDataList.addAll(dataListataList);
 
-                jsonArray = OneLevelJsonParser.parseOneLevelJsonToArray(bufferedReader);
+                } catch (NullPointerException c) {
+                    clientDataList = new ArrayList<>();
+                } catch (JsonSyntaxException d) {
+                    clientDataList = new ArrayList<>();
+                    LogTools.exceptionLog("Данные в файле повреждены и будут утеряны.\n" +
+                            "Файл будет перезаписан новыми данными.");
+                }
             } catch (IOException e) {
                 LogTools.exceptionLog("Не возможно прочитать файл.");
             }
+
         } else {
             try {
                 Path dirPath = path.getParent();
@@ -42,14 +56,9 @@ public class JsonFileOutput implements FileOutputType {
             }
         }
 
-        for (OutputDataMarks key : map.keySet()) {
-            String value = map.get(key);
-            jsonObject.addProperty(key.getValue(), value);
-        }
-        jsonArray.add(jsonObject);
-        try (FileWriter fileWriter = new FileWriter(String.valueOf(filePath));) {
-
-            gson.toJson(jsonArray, fileWriter);
+        try (FileWriter fileWriter = new FileWriter(String.valueOf(filePath))) {
+            clientDataList.add(clientData);
+            gson.toJson(clientDataList, fileWriter);
             fileWriter.flush();
         } catch (IOException e) {
             LogTools.exceptionLog("Не возможно записать файл.");
