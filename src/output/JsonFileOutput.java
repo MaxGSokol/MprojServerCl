@@ -22,42 +22,44 @@ public class JsonFileOutput implements FileOutputType {
     @Override
     public void outputData(ClientData clientData) {
         Path path = Path.of(SingletonServerConfig.SERVER_CONFIG.getJsonFileOutput());
-        Path filePath = path;
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        List<ClientData> clientDataList = new ArrayList<>();
+        ArrayList<ClientData> clientDataList = new ArrayList<>();
 
-        if (!Files.notExists(filePath)) {
-            try (FileReader fileReader = new FileReader(String.valueOf(filePath));
-                 BufferedReader bufferedReader = new BufferedReader(fileReader)) {
-                try {
-                    List<ClientData> dataListataList =
-                            Arrays.asList(gson.fromJson(bufferedReader, ClientData[].class));
-                    clientDataList.addAll(dataListataList);
-
-                } catch (NullPointerException c) {
-                    clientDataList = new ArrayList<>();
-                } catch (JsonSyntaxException d) {
-                    clientDataList = new ArrayList<>();
-                    LogTools.exceptionLog("Данные в файле повреждены и будут утеряны.\n" +
-                            "Файл будет перезаписан новыми данными.");
-                }
-            } catch (IOException e) {
-                LogTools.exceptionLog("Не возможно прочитать файл.");
-            }
-
+        if (!Files.notExists(path)) {
+            clientDataList = getClientDataArrayFromJson(path, gson);
         } else {
-            try {
-                Path dirPath = path.getParent();
-                Files.createDirectories(dirPath);
-                filePath = dirPath.resolve(String.valueOf(path.getFileName()));
-                Files.createFile(filePath);
-            } catch (IOException e) {
-                LogTools.exceptionLog("Не удалось создать директорию для json файла.");
-            }
+            getNewDirectory(path);
         }
+        clientDataList.add(clientData);
+        writeDataToJson(path, clientDataList, gson);
 
-        try (FileWriter fileWriter = new FileWriter(String.valueOf(filePath))) {
-            clientDataList.add(clientData);
+
+    }
+
+    private ArrayList<ClientData> getClientDataArrayFromJson(Path path, Gson gson) {
+        ArrayList<ClientData> clientDataArrayList = new ArrayList<>();
+
+        try (FileReader fileReader = new FileReader(String.valueOf(path));
+             BufferedReader bufferedReader = new BufferedReader(fileReader)) {
+            try {
+                List<ClientData> dataListataList =
+                        Arrays.asList(gson.fromJson(bufferedReader, ClientData[].class));
+                clientDataArrayList.addAll(dataListataList);
+            } catch (NullPointerException c) {
+                return new ArrayList<>();
+            } catch (JsonSyntaxException d) {
+                LogTools.exceptionLog("Данные в файле повреждены и будут утеряны.\n" +
+                        "Файл будет перезаписан новыми данными.");
+                return new ArrayList<>();
+            }
+        } catch (IOException e) {
+            LogTools.exceptionLog("Не возможно прочитать файл.");
+        }
+        return clientDataArrayList;
+    }
+
+    private void writeDataToJson(Path path, ArrayList<ClientData> clientDataList, Gson gson) {
+        try (FileWriter fileWriter = new FileWriter(String.valueOf(path))) {
             gson.toJson(clientDataList, fileWriter);
             fileWriter.flush();
         } catch (IOException e) {
@@ -65,4 +67,14 @@ public class JsonFileOutput implements FileOutputType {
         }
     }
 
+    private void getNewDirectory(Path path) {
+        try {
+            Path dirPath = path.getParent();
+            Files.createDirectories(dirPath);
+            Path newFilePath = dirPath.resolve(String.valueOf(path.getFileName()));
+            Files.createFile(newFilePath);
+        } catch (IOException e) {
+            LogTools.exceptionLog("Не удалось создать директорию для json файла.");
+        }
+    }
 }
