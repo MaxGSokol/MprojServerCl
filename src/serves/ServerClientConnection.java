@@ -1,83 +1,63 @@
 package serves;
 
-import data.FullDataPack;
-import storage.ServerClConfig;
+import lombok.Getter;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
-public class ServerClientConnection {
-    private  Socket clientSocket;
-    private ServerSocket serverSocket;
-    private ObjectOutputStream out;
-    private ObjectInputStream in;
+import static source.SingletonServerConfig.SERVER_CONFIG;
 
-    public ServerClientConnection() throws IOException {
-        this.serverSocket = new ServerSocket(ServerClConfig.SERVER_PORT);
-        this.clientSocket = serverSocket.accept();
-        this.out = new ObjectOutputStream(clientSocket.getOutputStream());
-        this.in = new ObjectInputStream(clientSocket.getInputStream());
+@Getter
+public class ServerClientConnection implements Runnable {
+    private final ObjectOutputStream out;
+    private final ObjectInputStream in;
+    private final Socket clientSocket;
+
+    public ServerClientConnection() {
+        try (ServerSocket serverSocket = new ServerSocket(SERVER_CONFIG.getServerPort())) {
+            LogTools.statusLog("В ожидании соединения.");
+            clientSocket = serverSocket.accept();
+            this.out = new ObjectOutputStream(clientSocket.getOutputStream());
+            this.in = new ObjectInputStream(clientSocket.getInputStream());
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        SERVER_CONFIG.setClientIp(String.valueOf(clientSocket.getInetAddress()));
+        SERVER_CONFIG.setInvalidConnection(false);
+        Thread thread = new Thread(this);
+        thread.setDaemon(true);
+        thread.start();
         LogTools.statusLog("Соединение установлено.");
     }
 
-    public FullDataPack receive() {
-        FullDataPack fullDataPack = null;
+    public Object receive() throws IOException {
         try {
-            fullDataPack = (FullDataPack) in.readObject();
-        } catch (IOException e) {
-LogTools.exceptionLog("IOException");
+            return in.readObject();
         } catch (ClassNotFoundException e) {
-LogTools.exceptionLog("ClassNotFoundException");
-        }
-        LogTools.statusLog("Объект получен.");
-        return fullDataPack;
-    }
-
-    public void receiveAllotOfData() throws IOException, ClassNotFoundException {
-        String userName = (String) in.readObject();
-        String fileType = (String) in.readObject();
-        String dataType = (String) in.readObject();
-        String signature = (String) in.readObject();
-        long dataLength = in.readLong();
-        long controlSum = in.readLong();
-        System.out.println(userName + "\n" + fileType + "\n" + dataType + "\n" + signature
-        + "\n" + dataLength + "\n" + controlSum);
-        if (dataType.equals("SIMPLE")) {
-            int simpleDate = in.readInt();
-            System.out.println(simpleDate);
-        } else {
-            Map<String,Integer> dataMap = (ConcurrentHashMap<String, Integer>) in.readObject();
-
-        for (String key : dataMap.keySet()) {
-            Integer value = dataMap.get(key);
-            System.out.println(key + " - " + value + " градуса.");
-        }
+            return null;
         }
     }
 
-    public String rec() {
-        String string = null;
+    private void close() {
         try {
-            string = (String) in.readObject();
+            out.close();
+            in.close();
+            clientSocket.close();
+            LogTools.statusLog("Потоки ввода вывода закрыты.");
         } catch (IOException e) {
-            LogTools.exceptionLog("IOException");
-        } catch (ClassNotFoundException e) {
-            LogTools.exceptionLog("ClassNotFoundException");
+            LogTools.exceptionLog("Не возможно закрыть соединение.");
         }
-        LogTools.statusLog("Объект получен.");
-        return string;
     }
 
-    public void send(String string) {
-        try {
-            out.writeObject(string);
-        } catch (IOException e) {
-            LogTools.exceptionLog("Не удалось отправить сообщение.");
+    @Override
+    public void run() {
+        while (!SERVER_CONFIG.isInvalidConnection()) {
         }
+        close();
     }
+
 }
